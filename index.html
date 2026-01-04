@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <!-- SEO & Meta -->
+    <title>Apprendre l'Alphabet Arabe | الأبجدية العربية</title>
+    <meta name="description" content="Apprenez l'alphabet arabe avec les différentes formes d'écriture, voyelles et sons. Jeu éducatif interactif gratuit." />
+    <meta name="keywords" content="alphabet arabe, apprendre arabe, lettres arabes, harakat, voyelles arabes, jeu éducatif" />
+    <meta name="author" content="Arabic Alphabet Game" />
+    
+    <!-- Open Graph -->
+    <meta property="og:title" content="Apprendre l'Alphabet Arabe" />
+    <meta property="og:description" content="Jeu éducatif interactif pour apprendre l'alphabet arabe avec audio" />
+    <meta property="og:type" content="website" />
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    
+    <!-- Preconnect pour Google Fonts (améliore le temps de chargement) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    
+    <!-- Preconnect pour Google Translate TTS (audio) -->
+    <link rel="preconnect" href="https://translate.google.com" />
+    
+    <!-- Font Amiri - chargement optimisé avec display=swap -->
+    <link 
+      rel="stylesheet" 
+      href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&display=swap"
+      media="print" 
+      onload="this.media='all'"
+    />
+    <noscript>
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&display=swap" />
+    </noscript>
+    
+    <!-- Theme color pour mobile -->
+    <meta name="theme-color" content="#061820" />
+    
+    <!-- Style critique inline pour éviter le FOUC -->
+    <style>
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      html, body, #root { 
+        min-height: 100vh; 
+        background: #061820;
+      }
+      body {
+        font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+      /* Loading spinner */
+      .loading {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        color: #d4af37;
+        font-size: 24px;
+        font-family: 'Amiri', serif;
+      }
+      .loading::after {
+        content: '';
+        width: 40px;
+        height: 40px;
+        border: 3px solid #d4af37;
+        border-top-color: transparent;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-left: 16px;
+      }
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root">
+      <div class="loading">جاري التحميل</div>
+    </div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
