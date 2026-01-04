@@ -1,22 +1,93 @@
 import { useState, useEffect, useCallback, memo } from 'react'
 
-// Fonction pour jouer le son via Web Speech API
+// Cache des sons chargés
+const audioCache = new Map()
+
+// Mapping des caractères arabes vers les fichiers audio
+const soundMapping = {
+  // Lettres isolées
+  'ا': 'alif', 'ب': 'ba', 'ت': 'ta', 'ث': 'tha', 'ج': 'jim', 'ح': 'ha', 'خ': 'kha',
+  'د': 'dal', 'ذ': 'dhal', 'ر': 'ra', 'ز': 'zay', 'س': 'sin', 'ش': 'shin',
+  'ص': 'sad', 'ض': 'dad', 'ط': 'ta_emph', 'ظ': 'dha_emph', 'ع': 'ayn', 'غ': 'ghayn',
+  'ف': 'fa', 'ق': 'qaf', 'ك': 'kaf', 'ل': 'lam', 'م': 'mim', 'ن': 'nun',
+  'ه': 'ha_light', 'و': 'waw', 'ي': 'ya',
+  // Avec Fatha
+  'أَ': 'alif_fatha', 'بَ': 'ba_fatha', 'تَ': 'ta_fatha', 'ثَ': 'tha_fatha', 'جَ': 'jim_fatha',
+  'حَ': 'ha_fatha', 'خَ': 'kha_fatha', 'دَ': 'dal_fatha', 'ذَ': 'dhal_fatha', 'رَ': 'ra_fatha',
+  'زَ': 'zay_fatha', 'سَ': 'sin_fatha', 'شَ': 'shin_fatha', 'صَ': 'sad_fatha', 'ضَ': 'dad_fatha',
+  'طَ': 'ta_emph_fatha', 'ظَ': 'dha_emph_fatha', 'عَ': 'ayn_fatha', 'غَ': 'ghayn_fatha',
+  'فَ': 'fa_fatha', 'قَ': 'qaf_fatha', 'كَ': 'kaf_fatha', 'لَ': 'lam_fatha', 'مَ': 'mim_fatha',
+  'نَ': 'nun_fatha', 'هَ': 'ha_light_fatha', 'وَ': 'waw_fatha', 'يَ': 'ya_fatha',
+  // Avec Kasra
+  'إِ': 'alif_kasra', 'بِ': 'ba_kasra', 'تِ': 'ta_kasra', 'ثِ': 'tha_kasra', 'جِ': 'jim_kasra',
+  'حِ': 'ha_kasra', 'خِ': 'kha_kasra', 'دِ': 'dal_kasra', 'ذِ': 'dhal_kasra', 'رِ': 'ra_kasra',
+  'زِ': 'zay_kasra', 'سِ': 'sin_kasra', 'شِ': 'shin_kasra', 'صِ': 'sad_kasra', 'ضِ': 'dad_kasra',
+  'طِ': 'ta_emph_kasra', 'ظِ': 'dha_emph_kasra', 'عِ': 'ayn_kasra', 'غِ': 'ghayn_kasra',
+  'فِ': 'fa_kasra', 'قِ': 'qaf_kasra', 'كِ': 'kaf_kasra', 'لِ': 'lam_kasra', 'مِ': 'mim_kasra',
+  'نِ': 'nun_kasra', 'هِ': 'ha_light_kasra', 'وِ': 'waw_kasra', 'يِ': 'ya_kasra',
+  // Avec Damma
+  'أُ': 'alif_damma', 'بُ': 'ba_damma', 'تُ': 'ta_damma', 'ثُ': 'tha_damma', 'جُ': 'jim_damma',
+  'حُ': 'ha_damma', 'خُ': 'kha_damma', 'دُ': 'dal_damma', 'ذُ': 'dhal_damma', 'رُ': 'ra_damma',
+  'زُ': 'zay_damma', 'سُ': 'sin_damma', 'شُ': 'shin_damma', 'صُ': 'sad_damma', 'ضُ': 'dad_damma',
+  'طُ': 'ta_emph_damma', 'ظُ': 'dha_emph_damma', 'عُ': 'ayn_damma', 'غُ': 'ghayn_damma',
+  'فُ': 'fa_damma', 'قُ': 'qaf_damma', 'كُ': 'kaf_damma', 'لُ': 'lam_damma', 'مُ': 'mim_damma',
+  'نُ': 'nun_damma', 'هُ': 'ha_light_damma', 'وُ': 'waw_damma', 'يُ': 'ya_damma',
+  // Avec Sukun
+  'أْ': 'alif_sukun', 'بْ': 'ba_sukun', 'تْ': 'ta_sukun', 'ثْ': 'tha_sukun', 'جْ': 'jim_sukun',
+  'حْ': 'ha_sukun', 'خْ': 'kha_sukun', 'دْ': 'dal_sukun', 'ذْ': 'dhal_sukun', 'رْ': 'ra_sukun',
+  'زْ': 'zay_sukun', 'سْ': 'sin_sukun', 'شْ': 'shin_sukun', 'صْ': 'sad_sukun', 'ضْ': 'dad_sukun',
+  'طْ': 'ta_emph_sukun', 'ظْ': 'dha_emph_sukun', 'عْ': 'ayn_sukun', 'غْ': 'ghayn_sukun',
+  'فْ': 'fa_sukun', 'قْ': 'qaf_sukun', 'كْ': 'kaf_sukun', 'لْ': 'lam_sukun', 'مْ': 'mim_sukun',
+  'نْ': 'nun_sukun', 'هْ': 'ha_light_sukun', 'وْ': 'waw_sukun', 'يْ': 'ya_sukun',
+  // Harakat
+  'بّ': 'haraka_shadda', 'بًا': 'haraka_tanwin_fath', 'بٍ': 'haraka_tanwin_kasr', 'بٌ': 'haraka_tanwin_damm',
+}
+
+// Fonction pour jouer le son (MP3 local avec fallback Web Speech API)
 const playSound = (text) => {
+  const soundId = soundMapping[text]
+  
+  if (soundId) {
+    // Essayer de jouer le fichier MP3 local
+    const audioPath = `${import.meta.env.BASE_URL}audio/${soundId}.mp3`
+    
+    // Utiliser le cache si disponible
+    if (audioCache.has(soundId)) {
+      const audio = audioCache.get(soundId)
+      audio.currentTime = 0
+      audio.play().catch(() => fallbackToSpeech(text))
+      return
+    }
+    
+    const audio = new Audio(audioPath)
+    audio.addEventListener('canplaythrough', () => {
+      audioCache.set(soundId, audio)
+      audio.play().catch(() => fallbackToSpeech(text))
+    })
+    audio.addEventListener('error', () => {
+      fallbackToSpeech(text)
+    })
+    audio.load()
+  } else {
+    fallbackToSpeech(text)
+  }
+}
+
+// Fallback vers Web Speech API si le fichier MP3 n'existe pas
+const fallbackToSpeech = (text) => {
   if (!('speechSynthesis' in window)) {
     console.log('Speech synthesis not supported')
     return
   }
   
-  // Annuler toute lecture en cours
   window.speechSynthesis.cancel()
   
   const utterance = new SpeechSynthesisUtterance(text)
-  utterance.lang = 'ar-SA' // Arabe (Arabie Saoudite)
-  utterance.rate = 0.8     // Vitesse plus lente pour mieux entendre
+  utterance.lang = 'ar-SA'
+  utterance.rate = 0.8
   utterance.pitch = 1
   utterance.volume = 1
   
-  // Chercher une voix arabe si disponible
   const voices = window.speechSynthesis.getVoices()
   const arabicVoice = voices.find(v => v.lang.startsWith('ar'))
   if (arabicVoice) {
@@ -97,220 +168,6 @@ const harakat = [
   { name: 'Tanwin Kasr', symbol: 'ٍ', description: 'Terminaison "in"', example: 'بٍ', sound: 'in', position: 'en-dessous', color: '#00b894' },
   { name: 'Tanwin Damm', symbol: 'ٌ', description: 'Terminaison "oun"', example: 'بٌ', sound: 'oun', position: 'au-dessus', color: '#fdcb6e' },
 ]
-
-// Composant d'aide pour installer la voix arabe
-const VoiceInstallHelper = ({ onClose }) => {
-  const [hasArabicVoice, setHasArabicVoice] = useState(null)
-  const [os, setOs] = useState('')
-
-  useEffect(() => {
-    // Détecter l'OS
-    const userAgent = navigator.userAgent
-    if (userAgent.includes('Win')) setOs('windows')
-    else if (userAgent.includes('Mac')) setOs('mac')
-    else if (userAgent.includes('Linux')) setOs('linux')
-    else if (userAgent.includes('Android')) setOs('android')
-    else if (userAgent.includes('iPhone') || userAgent.includes('iPad')) setOs('ios')
-    else setOs('other')
-
-    // Vérifier si une voix arabe est disponible
-    const checkVoices = () => {
-      const voices = window.speechSynthesis.getVoices()
-      const arabicVoices = voices.filter(v => v.lang.startsWith('ar'))
-      setHasArabicVoice(arabicVoices.length > 0)
-    }
-    
-    checkVoices()
-    window.speechSynthesis.onvoiceschanged = checkVoices
-  }, [])
-
-  const instructions = {
-    windows: {
-      title: 'Windows 10/11',
-      steps: [
-        'Ouvre Paramètres (Win + I)',
-        'Va dans Heure et langue → Langue et région',
-        'Clique sur Ajouter une langue',
-        'Cherche العربية (Arabe) et installe-le',
-        'Coche l\'option Synthèse vocale',
-        'Redémarre ton navigateur'
-      ]
-    },
-    mac: {
-      title: 'macOS',
-      steps: [
-        'Ouvre Préférences Système',
-        'Va dans Accessibilité → Contenu énoncé',
-        'Clique sur Voix système → Gérer les voix...',
-        'Télécharge une voix arabe (Maged ou Majed)',
-        'Redémarre ton navigateur'
-      ]
-    },
-    linux: {
-      title: 'Linux',
-      steps: [
-        'Ouvre un terminal',
-        'Tape: sudo apt install espeak-ng',
-        'Ou: sudo apt install festvox-arabad',
-        'Redémarre ton navigateur'
-      ]
-    },
-    android: {
-      title: 'Android',
-      steps: [
-        'Ouvre Paramètres',
-        'Va dans Système → Langues et saisie',
-        'Synthèse vocale → Paramètres du moteur',
-        'Télécharge la voix arabe',
-        'Redémarre Chrome'
-      ]
-    },
-    ios: {
-      title: 'iOS / iPadOS',
-      steps: [
-        'Ouvre Réglages',
-        'Va dans Accessibilité → Contenu énoncé',
-        'Voix → Arabe',
-        'Télécharge une voix arabe',
-        'Redémarre Safari'
-      ]
-    },
-    other: {
-      title: 'Autre système',
-      steps: [
-        'Cherche "installer voix arabe" + ton système',
-        'Installe une voix TTS arabe',
-        'Redémarre ton navigateur'
-      ]
-    }
-  }
-
-  const current = instructions[os] || instructions.other
-
-  return (
-    <div style={{
-      position: 'fixed',
-      top: 0, left: 0, right: 0, bottom: 0,
-      background: 'rgba(0,0,0,0.8)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 1000,
-      padding: '20px',
-    }}>
-      <div style={{
-        background: 'linear-gradient(180deg, #0d2b36 0%, #061820 100%)',
-        borderRadius: '24px',
-        padding: '32px',
-        maxWidth: '500px',
-        width: '100%',
-        border: '2px solid rgba(212, 175, 55, 0.4)',
-        maxHeight: '90vh',
-        overflowY: 'auto',
-      }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-          <h2 style={{ color: '#d4af37', fontSize: '22px', margin: 0 }}>🔊 Installer la voix arabe</h2>
-          <button
-            onClick={onClose}
-            style={{
-              background: 'rgba(255,255,255,0.1)',
-              border: 'none',
-              borderRadius: '50%',
-              width: '36px',
-              height: '36px',
-              cursor: 'pointer',
-              color: '#fff',
-              fontSize: '20px',
-            }}
-          >
-            ✕
-          </button>
-        </div>
-
-        {/* Status */}
-        <div style={{
-          background: hasArabicVoice ? 'rgba(76, 175, 80, 0.2)' : 'rgba(244, 67, 54, 0.2)',
-          border: `2px solid ${hasArabicVoice ? '#4CAF50' : '#f44336'}`,
-          borderRadius: '12px',
-          padding: '16px',
-          marginBottom: '24px',
-          textAlign: 'center',
-        }}>
-          <div style={{ fontSize: '32px', marginBottom: '8px' }}>
-            {hasArabicVoice ? '✅' : '❌'}
-          </div>
-          <div style={{ color: hasArabicVoice ? '#4CAF50' : '#f44336', fontWeight: '600' }}>
-            {hasArabicVoice ? 'Voix arabe détectée !' : 'Aucune voix arabe détectée'}
-          </div>
-          {hasArabicVoice && (
-            <div style={{ color: '#8ec8d8', fontSize: '13px', marginTop: '8px' }}>
-              Tu peux fermer cette fenêtre et jouer 🎉
-            </div>
-          )}
-        </div>
-
-        {!hasArabicVoice && (
-          <>
-            {/* Instructions */}
-            <div style={{ marginBottom: '24px' }}>
-              <h3 style={{ color: '#d4af37', fontSize: '16px', marginBottom: '16px' }}>
-                📋 Instructions pour {current.title}
-              </h3>
-              <ol style={{ color: '#fff', paddingLeft: '20px', lineHeight: '2' }}>
-                {current.steps.map((step, i) => (
-                  <li key={i} style={{ marginBottom: '8px' }}>
-                    <span style={{ color: '#8ec8d8' }}>{step}</span>
-                  </li>
-                ))}
-              </ol>
-            </div>
-
-            {/* Bouton test */}
-            <button
-              onClick={() => {
-                const voices = window.speechSynthesis.getVoices()
-                const arabicVoices = voices.filter(v => v.lang.startsWith('ar'))
-                setHasArabicVoice(arabicVoices.length > 0)
-                if (arabicVoices.length > 0) {
-                  playSound('مرحبا')
-                }
-              }}
-              style={{
-                width: '100%',
-                background: 'linear-gradient(145deg, #d4af37, #b8942e)',
-                color: '#0d2b36',
-                border: 'none',
-                borderRadius: '12px',
-                padding: '14px',
-                fontSize: '16px',
-                fontWeight: '600',
-                cursor: 'pointer',
-              }}
-            >
-              🔄 Tester à nouveau
-            </button>
-          </>
-        )}
-
-        {/* Chrome tip */}
-        <div style={{
-          background: 'rgba(212, 175, 55, 0.1)',
-          borderRadius: '12px',
-          padding: '16px',
-          marginTop: '20px',
-        }}>
-          <div style={{ color: '#d4af37', fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>
-            💡 Astuce
-          </div>
-          <div style={{ color: '#8ec8d8', fontSize: '12px', lineHeight: '1.6' }}>
-            Chrome et Edge ont souvent des voix arabes intégrées. Si ça ne marche pas, 
-            essaie de changer de navigateur ou d'ajouter l'arabe dans les paramètres de langue.
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
 
 // Styles inline pour éviter le CSS externe
 const styles = {
@@ -665,6 +522,13 @@ const QuizMode = () => {
     setFeedback(null)
   }, [quizType])
 
+  // Jouer automatiquement le son pour le mode identify
+  useEffect(() => {
+    if (currentQuestion && currentQuestion.type === 'identify') {
+      setTimeout(() => playSound(currentQuestion.letter.isolated), 300)
+    }
+  }, [currentQuestion])
+
   useEffect(() => { generateQuestion() }, [generateQuestion])
 
   const handleAnswer = (answer) => {
@@ -728,8 +592,8 @@ const QuizMode = () => {
 
       <div style={{ textAlign: 'center', marginBottom: '28px' }}>
         <div style={{ color: '#8ec8d8', fontSize: '16px', marginBottom: '16px' }}>
-          {currentQuestion.type === 'identify' && 'Quelle est cette lettre ?'}
-          {currentQuestion.type === 'form' && `Cliquez sur la forme "${currentQuestion.formLabel}":`}
+          {currentQuestion.type === 'identify' && 'Écoutez et identifiez la lettre'}
+          {currentQuestion.type === 'form' && `Écoutez et cliquez sur la forme "${currentQuestion.formLabel}":`}
           {currentQuestion.type === 'sound' && 'Écoutez et identifiez la voyelle:'}
         </div>
         
@@ -737,22 +601,23 @@ const QuizMode = () => {
           <div 
             onClick={() => playSound(currentQuestion.type === 'sound' ? currentQuestion.vowelChar : currentQuestion.letter.isolated)}
             style={{
-              fontFamily: "'Amiri', serif",
-              fontSize: currentQuestion.type === 'sound' ? '80px' : '100px',
+              fontFamily: currentQuestion.type === 'identify' ? "'Segoe UI', sans-serif" : "'Amiri', serif",
+              fontSize: '100px',
               color: '#d4af37',
               textShadow: '0 4px 30px rgba(212, 175, 55, 0.5)',
               cursor: 'pointer',
               lineHeight: 1.2,
+              userSelect: 'none',
             }}
           >
-            {currentQuestion.type === 'sound' ? currentQuestion.vowelChar : currentQuestion.letter.isolated}
+            {currentQuestion.type === 'identify' ? '?' : currentQuestion.type === 'sound' ? currentQuestion.vowelChar : currentQuestion.letter.isolated}
           </div>
           <AudioButton 
             onClick={() => playSound(currentQuestion.type === 'sound' ? currentQuestion.vowelChar : currentQuestion.letter.isolated)} 
             size={64} 
           />
         </div>
-        <div style={{ color: 'rgba(142, 200, 216, 0.6)', fontSize: '12px', marginTop: '8px' }}>(Cliquez pour écouter)</div>
+        <div style={{ color: 'rgba(142, 200, 216, 0.6)', fontSize: '12px', marginTop: '8px' }}>🔊 Cliquez pour écouter</div>
       </div>
 
       <div style={{
@@ -820,54 +685,11 @@ export default function App() {
   const [mode, setMode] = useState('learn')
   const [selectedLetter, setSelectedLetter] = useState(null)
   const [showAllDetails, setShowAllDetails] = useState(true)
-  const [showVoiceHelper, setShowVoiceHelper] = useState(false)
-  const [hasArabicVoice, setHasArabicVoice] = useState(true)
-
-  // Charger les voix au démarrage
-  useEffect(() => {
-    const loadVoices = () => {
-      const voices = window.speechSynthesis.getVoices()
-      const arabicVoices = voices.filter(v => v.lang.startsWith('ar'))
-      setHasArabicVoice(arabicVoices.length > 0)
-    }
-    loadVoices()
-    window.speechSynthesis.onvoiceschanged = loadVoices
-  }, [])
 
   return (
     <div style={styles.container}>
       <div style={styles.decorPattern} />
       <div style={styles.content}>
-        {/* Bouton d'aide pour la voix */}
-        <button
-          onClick={() => setShowVoiceHelper(true)}
-          style={{
-            position: 'fixed',
-            bottom: '20px',
-            right: '20px',
-            background: hasArabicVoice 
-              ? 'linear-gradient(145deg, #4CAF50, #388E3C)' 
-              : 'linear-gradient(145deg, #f44336, #d32f2f)',
-            border: 'none',
-            borderRadius: '50px',
-            padding: '12px 20px',
-            cursor: 'pointer',
-            zIndex: 100,
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            boxShadow: '0 4px 15px rgba(0,0,0,0.3)',
-          }}
-        >
-          <span style={{ fontSize: '20px' }}>🔊</span>
-          <span style={{ color: '#fff', fontWeight: '600', fontSize: '13px' }}>
-            {hasArabicVoice ? 'Voix OK' : 'Installer voix'}
-          </span>
-        </button>
-
-        {/* Modal d'aide */}
-        {showVoiceHelper && <VoiceInstallHelper onClose={() => setShowVoiceHelper(false)} />}
-
         <header style={{ textAlign: 'center', marginBottom: '32px', paddingTop: '16px' }}>
           <h1 style={styles.title}>الأبجدية العربية</h1>
           <p style={styles.subtitle}>Apprends l'Alphabet Arabe</p>
