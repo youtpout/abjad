@@ -17,8 +17,8 @@ export default defineConfig({
       ext: '.br',
     }),
   ],
-  // IMPORTANT: Remplace 'abdjad' par le nom de ton repo GitHub
-  base: '/abdjad/',
+  // IMPORTANT: Remplace par le nom de ton repo GitHub
+  base: 'https://youtpout.github.io/abjad/',
   build: {
     // Optimisations de build
     minify: 'terser',
