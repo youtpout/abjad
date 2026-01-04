@@ -610,7 +610,7 @@ const QuizMode = () => {
               userSelect: 'none',
             }}
           >
-            {currentQuestion.type === 'identify' ? '?' : currentQuestion.type === 'sound' ? currentQuestion.vowelChar : currentQuestion.letter.isolated}
+            {currentQuestion.type === 'identify' ? '?' : currentQuestion.letter.isolated}
           </div>
           <AudioButton 
             onClick={() => playSound(currentQuestion.type === 'sound' ? currentQuestion.vowelChar : currentQuestion.letter.isolated)} 
@@ -643,13 +643,11 @@ const QuizMode = () => {
             {currentQuestion.type === 'identify' && (
               <>
                 <div style={{ fontFamily: "'Amiri', serif", fontSize: '42px', color: '#fff', marginBottom: '6px' }}>{opt.isolated}</div>
-                <div style={{ color: '#d4af37', fontSize: '13px' }}>{opt.name}</div>
               </>
             )}
             {currentQuestion.type === 'form' && (
               <>
                 <div style={{ fontFamily: "'Amiri', serif", fontSize: '38px', color: '#fff', marginBottom: '6px' }}>{opt.char}</div>
-                <div style={{ color: '#d4af37', fontSize: '12px' }}>{opt.label}</div>
               </>
             )}
             {currentQuestion.type === 'sound' && (
